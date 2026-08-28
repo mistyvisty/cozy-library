@@ -13,7 +13,7 @@ export default function Bookcase({ section, isOpen, isCurrent, onSelect }: Props
     <button
       onClick={onSelect}
       aria-label={`Walk to the ${section.name} shelf`}
-      className="group absolute bottom-[26%] -translate-x-1/2 focus:outline-none"
+      className="group absolute bottom-[25%] -translate-x-1/2 focus:outline-none"
       style={{ left: `${section.x}%` }}
     >
       {/* case */}

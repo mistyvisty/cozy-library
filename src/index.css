@@ -41,8 +41,9 @@ body {
   animation: bob 0.35s ease-in-out infinite;
 }
 
-/* Book held against the chest breathes a little */
-@keyframes hug {
+/* Chest rising and falling gently — used for the sleeping pose's breathing
+   and a touch of idle life on the curious pose */
+@keyframes breathe {
   0%,
   100% {
     transform: translateY(0) rotate(-2deg);
@@ -51,9 +52,22 @@ body {
     transform: translateY(-1.5px) rotate(2deg);
   }
 }
-.hug {
-  animation: hug 2.4s ease-in-out infinite;
-  transform-origin: 22px 50px;
+.breathe {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+/* Tail swaying gently while walking */
+@keyframes tailSway {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+.tailSway {
+  animation: tailSway 0.7s ease-in-out infinite;
 }
 
 /* Dust drifting in the lamplight */
@@ -77,7 +91,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .swing,
   .bob,
-  .hug,
+  .breathe,
+  .tailSway,
   .mote {
     animation: none;
   }

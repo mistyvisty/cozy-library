@@ -1,16 +1,36 @@
 import { useEffect, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { findBook, sections } from "../data/books";
-import { useLibrary } from "../store/useLibrary";
+import { HOUSE_BOTTOM, HOUSE_X, useLibrary } from "../store/useLibrary";
+import PawHouse from "./PawHouse";
 import Avatar from "./Avatar";
 import Bookcase from "./Bookcase";
 
 const MOTES = [12, 28, 44, 61, 77, 90];
 
 export default function LibraryRoom() {
-  const { x, facing, isWalking, look, openSectionId, carriedBookId, walkTo, arrive } =
-    useLibrary();
+  const {
+    x,
+    facing,
+    isWalking,
+    look,
+    openSectionId,
+    carriedBookId,
+    readingPhase,
+    walkTo,
+    arrive,
+    arriveAtChair,
+    openBook,
+  } = useLibrary();
   const reduceMotion = useReducedMotion();
+
+  // A short settle beat once seated, then the book opens.
+  useEffect(() => {
+    if (readingPhase !== "sitting") return;
+    const delay = reduceMotion ? 0 : 500;
+    const id = setTimeout(openBook, delay);
+    return () => clearTimeout(id);
+  }, [readingPhase, reduceMotion, openBook]);
 
   // Work out how long the walk should take, based on how far we're going.
   const prevX = useRef(x);
@@ -21,6 +41,17 @@ export default function LibraryRoom() {
   const duration = reduceMotion ? 0 : Math.max(0.5, distance * 0.045);
 
   const carried = findBook(carriedBookId);
+
+  // She stands at the shelf line to browse, but steps forward onto the rug
+  // to sleep — the paw house lives in the foreground, not against the wall.
+  const AVATAR_BOTTOM = 24;
+  const bottomPct = readingPhase === "idle" ? AVATAR_BOTTOM : HOUSE_BOTTOM;
+
+  // walking whenever she's actually moving (to a shelf or to the paw house);
+  // otherwise curious while idle/browsing/carrying, or asleep once she's
+  // settled in to read — there's no fourth pose for plain idle standing, so
+  // curious covers that too.
+  const pose = isWalking ? "walking" : readingPhase === "idle" ? "curious" : "sleeping";
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -75,8 +106,28 @@ export default function LibraryRoom() {
         <div className="absolute bottom-[14%] left-1/2 h-[46%] w-[56%] -translate-x-1/2 rounded-[50%] bg-blush/25 ring-4 ring-blush/20" />
       </div>
 
+      {/* paw house, left corner */}
+      <PawHouse />
+
+      {/* the book, resting open beside her while she sleeps — purely
+          decorative, doesn't need to track the real current page, which is
+          entirely ReadingView's job */}
+      {readingPhase !== "idle" && carried && (
+        <div
+          className="absolute z-10"
+          style={{ left: `${HOUSE_X + 9}%`, bottom: `${HOUSE_BOTTOM}%` }}
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 24 16" width="36" style={{ overflow: "visible" }}>
+            <path d="M12 3 L1 5 L1 14 L12 12 Z" fill={carried.spineColor} />
+            <path d="M12 3 L23 5 L23 14 L12 12 Z" fill={carried.spineColor} opacity="0.85" />
+            <path d="M1 5 L12 3 L23 5" fill="none" stroke="#00000022" strokeWidth="0.5" />
+          </svg>
+        </div>
+      )}
+
       {/* potted plant, right corner */}
-      <div className="absolute bottom-[24%] right-[3%] hidden flex-col items-center sm:flex">
+      <div className="absolute bottom-[25%] right-[3%] hidden flex-col items-center sm:flex">
         <div className="flex items-end gap-1">
           <div className="h-10 w-3 origin-bottom -rotate-12 rounded-full bg-mint" />
           <div className="h-14 w-3 rounded-full bg-mint" />
@@ -87,28 +138,25 @@ export default function LibraryRoom() {
 
       {/* the reader */}
       <motion.div
-        className="absolute bottom-[22%] z-20 -translate-x-1/2"
-        animate={{ left: `${x}%` }}
+        className="absolute z-20 -translate-x-1/2"
+        animate={{ left: `${x}%`, bottom: `${bottomPct}%` }}
         transition={{ duration, ease: "easeInOut" }}
         onAnimationComplete={() => {
-          if (isWalking) arrive();
+          if (!isWalking) return;
+          if (readingPhase === "walkingToChair") arriveAtChair();
+          else arrive();
         }}
-        style={{ left: `${x}%` }}
+        style={{ left: `${x}%`, bottom: `${bottomPct}%` }}
       >
         <div className="relative flex flex-col items-center">
           <div
             className={isWalking && !reduceMotion ? "bob" : ""}
             style={{ transform: `scaleX(${facing})` }}
           >
-            <Avatar
-              look={look}
-              walking={isWalking && !reduceMotion}
-              carryingColor={carried?.spineColor ?? null}
-              height={140}
-            />
+            <Avatar look={look} walking={isWalking && !reduceMotion} pose={pose} height={70} />
           </div>
           {/* shadow */}
-          <div className="mt-[-6px] h-2.5 w-16 rounded-[50%] bg-black/35 blur-[3px]" />
+          <div className="mt-[-4px] h-2 w-14 rounded-[50%] bg-black/35 blur-[3px]" />
         </div>
       </motion.div>
     </div>

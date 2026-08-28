@@ -4,43 +4,64 @@ import { findSection } from "../data/books";
 // If you've not used Zustand before: this is one shared object any component
 // can read from. Components re-render only when the slice they read changes.
 
-export type AvatarLook = {
-  skin: string;
-  hair: string;
-  hairStyle: "bun" | "bob" | "curls" | "short";
-  outfit: string;
-};
+export type FurPreset = "orange" | "tuxedo" | "grey" | "cream";
+export type CatLook = { fur: FurPreset; eyeColor: string };
 
-export const skinTones = ["#F3D2B3", "#E5B18A", "#C98B60", "#9C6440", "#6E4326"];
-export const hairColors = ["#3A2A2A", "#7A4B2A", "#C9873F", "#E2E0D6", "#8A6FB0", "#D77FA1"];
-export const outfitColors = ["#9FD8BE", "#F5A3B0", "#8FB8F0", "#F5C77E", "#C4A7E7"];
-export const hairStyles: AvatarLook["hairStyle"][] = ["bun", "bob", "curls", "short"];
+// Every preset gets a base fur color plus a lighter "marking" (chest/belly/
+// paws) — tuxedo isn't special-cased, it's just the preset whose marking
+// happens to be a bold white rather than a subtle tint.
+export const FUR_PRESETS: Record<FurPreset, { base: string; marking: string }> = {
+  orange: { base: "#E3963E", marking: "#FBEAD2" },
+  tuxedo: { base: "#2A2438", marking: "#FFF8EC" },
+  grey: { base: "#9B9CA6", marking: "#F1EFE9" },
+  cream: { base: "#EBD9B4", marking: "#FFF8EC" },
+};
+export const furPresetOrder: FurPreset[] = ["orange", "tuxedo", "grey", "cream"];
+export const eyeColors = ["#7CB88A", "#E8B84B", "#6FA8D6", "#B5895A"];
+
+// Not a shelf, so it doesn't live in data/books.ts — just a fixed walk target.
+// Placed in the foreground on the rug rather than against the wall, so it
+// never competes for space with the shelf row (see PawHouse.tsx, which must
+// stay visually in sync with these two numbers). HOUSE_X also doubles as
+// where she's left standing (at the shelf line) after closing the book, so
+// it's deliberately a gap between two shelves (Romance at 27, Thriller at
+// 42) rather than a shelf's own x — otherwise she'd stand on top of one.
+export const HOUSE_X = 35;
+export const HOUSE_BOTTOM = 4;
+
+export type ReadingPhase = "idle" | "walkingToChair" | "sitting" | "reading";
 
 type LibraryState = {
-  look: AvatarLook;
+  look: CatLook;
   x: number; // avatar position, % of room width
   facing: 1 | -1;
   isWalking: boolean;
   destinationId: string | null; // where we're headed
   openSectionId: string | null; // whose shelf panel is showing
   carriedBookId: string | null;
+  readingPhase: ReadingPhase;
 
-  setLook: (patch: Partial<AvatarLook>) => void;
+  setLook: (patch: Partial<CatLook>) => void;
   walkTo: (sectionId: string) => void;
   arrive: () => void;
   closeShelf: () => void;
   takeBook: (bookId: string) => void;
   shelveBook: () => void;
+  readBook: () => void;
+  arriveAtChair: () => void;
+  openBook: () => void;
+  closeReading: () => void;
 };
 
 export const useLibrary = create<LibraryState>((set, get) => ({
-  look: { skin: skinTones[1], hair: hairColors[1], hairStyle: "bun", outfit: outfitColors[0] },
+  look: { fur: "orange", eyeColor: eyeColors[0] },
   x: 50,
   facing: 1,
   isWalking: false,
   destinationId: null,
   openSectionId: null,
   carriedBookId: null,
+  readingPhase: "idle",
 
   setLook: (patch) => set((s) => ({ look: { ...s.look, ...patch } })),
 
@@ -50,7 +71,7 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     const { x } = get();
     if (Math.abs(section.x - x) < 0.5) {
       // Already standing there — just open the shelf.
-      set({ openSectionId: sectionId });
+      set({ openSectionId: sectionId, readingPhase: "idle" });
       return;
     }
     set({
@@ -59,6 +80,7 @@ export const useLibrary = create<LibraryState>((set, get) => ({
       isWalking: true,
       facing: section.x > x ? 1 : -1,
       x: section.x,
+      readingPhase: "idle",
     });
   },
 
@@ -73,4 +95,22 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   closeShelf: () => set({ openSectionId: null }),
   takeBook: (bookId) => set({ carriedBookId: bookId, openSectionId: null }),
   shelveBook: () => set({ carriedBookId: null }),
+
+  readBook: () => {
+    const { carriedBookId, x } = get();
+    if (!carriedBookId) return;
+    set({
+      isWalking: true,
+      facing: HOUSE_X > x ? 1 : -1,
+      x: HOUSE_X,
+      readingPhase: "walkingToChair",
+      openSectionId: null,
+    });
+  },
+
+  // Called when the walk-to-chair animation finishes.
+  arriveAtChair: () => set({ isWalking: false, readingPhase: "sitting" }),
+
+  openBook: () => set({ readingPhase: "reading" }),
+  closeReading: () => set({ readingPhase: "idle" }),
 }));

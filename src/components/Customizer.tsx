@@ -1,36 +1,32 @@
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  hairColors,
-  hairStyles,
-  outfitColors,
-  skinTones,
-  useLibrary,
-} from "../store/useLibrary";
+import { FUR_PRESETS, eyeColors, furPresetOrder, useLibrary, type FurPreset } from "../store/useLibrary";
 
-function Swatches({
-  colors,
+function Swatches<T extends string>({
+  options,
+  colorFor,
   active,
   onPick,
   label,
 }: {
-  colors: string[];
-  active: string;
-  onPick: (c: string) => void;
+  options: T[];
+  colorFor: (o: T) => string;
+  active: T;
+  onPick: (o: T) => void;
   label: string;
 }) {
   return (
     <div className="mb-3">
       <p className="mb-1.5 font-body text-xs uppercase tracking-wide text-ink/50">{label}</p>
       <div className="flex flex-wrap gap-2">
-        {colors.map((c) => (
+        {options.map((o) => (
           <button
-            key={c}
-            onClick={() => onPick(c)}
-            aria-label={`${label}: ${c}`}
-            className={`h-7 w-7 rounded-full ring-offset-2 ring-offset-cream transition ${
-              active === c ? "ring-2 ring-ink" : "ring-1 ring-black/10 hover:scale-110"
+            key={o}
+            onClick={() => onPick(o)}
+            aria-label={`${label}: ${o}`}
+            className={`h-7 w-7 rounded-full capitalize ring-offset-2 ring-offset-cream transition ${
+              active === o ? "ring-2 ring-ink" : "ring-1 ring-black/10 hover:scale-110"
             }`}
-            style={{ background: c }}
+            style={{ background: colorFor(o) }}
           />
         ))}
       </div>
@@ -62,24 +58,20 @@ export default function Customizer({ open, onClose }: { open: boolean; onClose: 
             </button>
           </div>
 
-          <Swatches label="Skin" colors={skinTones} active={look.skin} onPick={(skin) => setLook({ skin })} />
-          <Swatches label="Hair" colors={hairColors} active={look.hair} onPick={(hair) => setLook({ hair })} />
-          <Swatches label="Outfit" colors={outfitColors} active={look.outfit} onPick={(outfit) => setLook({ outfit })} />
-
-          <p className="mb-1.5 font-body text-xs uppercase tracking-wide text-ink/50">Hair style</p>
-          <div className="flex flex-wrap gap-1.5">
-            {hairStyles.map((s) => (
-              <button
-                key={s}
-                onClick={() => setLook({ hairStyle: s })}
-                className={`rounded-full px-3 py-1 font-body text-xs capitalize transition ${
-                  look.hairStyle === s ? "bg-ink text-cream" : "bg-ink/10 text-ink/70 hover:bg-ink/20"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          <Swatches<FurPreset>
+            label="Fur"
+            options={furPresetOrder}
+            colorFor={(f) => FUR_PRESETS[f].base}
+            active={look.fur}
+            onPick={(fur) => setLook({ fur })}
+          />
+          <Swatches
+            label="Eyes"
+            options={eyeColors}
+            colorFor={(c) => c}
+            active={look.eyeColor}
+            onPick={(eyeColor) => setLook({ eyeColor })}
+          />
         </motion.div>
       )}
     </AnimatePresence>
