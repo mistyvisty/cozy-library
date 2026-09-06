@@ -92,8 +92,15 @@ const RAINDROPS = [10, 24, 39, 53, 68, 82, 95];
 // verified as safe (0.11 * 1350 ≈ 0.15 * 900), extended to 8 shelves.
 const ROOM_DESIGN_WIDTH = 1350;
 
+// Only used on a portrait (phone) screen — see useFitScale's own comment.
+// Picked by screenshot iteration against real device-emulation profiles,
+// not derived from a formula: tall enough that the room actually fills most
+// of a phone screen instead of leaving a large empty gap above it, without
+// making the room itself look absurdly cavernous.
+const ROOM_DESIGN_HEIGHT = 2000;
+
 export default function LibraryRoom() {
-  const { ref: fitRef, scale } = useFitScale(ROOM_DESIGN_WIDTH);
+  const { ref: fitRef, scale, boxHeight } = useFitScale(ROOM_DESIGN_WIDTH, ROOM_DESIGN_HEIGHT);
   const {
     x,
     facing,
@@ -167,14 +174,15 @@ export default function LibraryRoom() {
   return (
     <div ref={fitRef} className="relative h-full w-full overflow-hidden">
       <div
-        className={scaled ? "absolute bottom-0 left-1/2 h-full" : "relative h-full w-full"}
+        className={scaled ? "absolute left-1/2 top-1/2" : "relative h-full w-full"}
         style={
           scaled
             ? {
                 width: ROOM_DESIGN_WIDTH,
+                height: boxHeight,
                 marginLeft: -ROOM_DESIGN_WIDTH / 2,
+                marginTop: -boxHeight / 2,
                 transform: `scale(${scale})`,
-                transformOrigin: "bottom center",
               }
             : undefined
         }

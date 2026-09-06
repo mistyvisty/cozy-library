@@ -16,7 +16,15 @@ export default function Bookcase({ section, isOpen, isCurrent, onSelect, onHover
       onMouseEnter={() => onHover?.(true)}
       onMouseLeave={() => onHover?.(false)}
       aria-label={`Walk to the ${section.name} shelf`}
-      className="group absolute bottom-[25%] -translate-x-1/2 focus:outline-none"
+      // bottom-[25%] used to dip 1% of the room's own height into the
+      // floor's own bottom-[26%] band — negligible at a few px (the room's
+      // old, effectively-fixed unscaled height on any real desktop window)
+      // but the same 1% swallowed the entire shelf label, unclickably, once
+      // the room's fixed design height grew large enough on phones for that
+      // 1% to exceed the label's own rendered size. 26% removes the overlap
+      // outright rather than just shrinking it back to a currently-small
+      // number that would only break again at some other scale.
+      className="group absolute bottom-[26%] -translate-x-1/2 focus:outline-none"
       style={{ left: `${section.x}%` }}
     >
       {/* case */}
