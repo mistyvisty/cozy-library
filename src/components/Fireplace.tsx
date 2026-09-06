@@ -1,12 +1,26 @@
+import { FIREPLACE_BOTTOM, FIREPLACE_X } from "../store/useLibrary";
+
+type Props = {
+  // Defaults reproduce the desktop room's placement exactly — the mobile
+  // layout passes its own coordinates, since its floor is a self-contained
+  // zone rather than one shared percentage axis with the shelf row.
+  x?: number;
+  bottomPct?: number;
+};
+
 // On the foreground rug, like the paw house (there's no shelf gap wide
 // enough for a back-wall fixture — see FIREPLACE_X's comment in
 // useLibrary.ts). Plain Tailwind shapes, matching the plant/paw-house
-// convention (SVG is reserved for the animals). Position (left-[62%],
-// bottom-[4%]) must stay in sync with FIREPLACE_X/FIREPLACE_BOTTOM in
-// useLibrary.ts, which is where the dog sits too.
-export default function Fireplace() {
+// convention (SVG is reserved for the animals). Defaults read straight from
+// FIREPLACE_X/FIREPLACE_BOTTOM (where the dog sits too) instead of
+// duplicating the numbers here — see PawHouse.tsx's comment for why that
+// duplication is worth avoiding.
+export default function Fireplace({ x = FIREPLACE_X, bottomPct = FIREPLACE_BOTTOM }: Props) {
   return (
-    <div className="absolute bottom-[4%] left-[62%] flex -translate-x-1/2 flex-col items-center">
+    <div
+      className="absolute flex -translate-x-1/2 flex-col items-center"
+      style={{ left: `${x}%`, bottom: `${bottomPct}%` }}
+    >
       {/* mantel shelf */}
       <div className="h-2 w-28 rounded-sm bg-woodDeep shadow-md" />
       {/* frame */}

@@ -1,6 +1,6 @@
 import { DOG_PRESETS, type DogLook } from "../store/useLibrary";
 
-type Props = { look: DogLook; awake: boolean };
+type Props = { look: DogLook; awake: boolean; size?: number };
 
 // A soft dark outline (not black) on every shape, even where fill colors
 // repeat, so the curled sleeping pose reads as "body + head + ear + tail"
@@ -11,7 +11,7 @@ const OUTLINE = "#2A2038";
 // Curled asleep by the fireplace by default; wakes and wags when a book is
 // finished (see useLibrary's notifyBookFinished/settleDog). Pure SVG, same
 // {base, marking} recoloring convention as the cat and owl.
-export default function Dog({ look, awake }: Props) {
+export default function Dog({ look, awake, size = 60 }: Props) {
   const { base, marking } = DOG_PRESETS[look.fur];
   const outline = { stroke: OUTLINE, strokeOpacity: 0.2, strokeWidth: 0.75 };
   // Ears and the curled tail are the same base color as the body they sit
@@ -22,7 +22,7 @@ export default function Dog({ look, awake }: Props) {
 
   return (
     <div className="relative" aria-hidden="true">
-      <svg viewBox="0 0 48 30" width="60" style={{ overflow: "visible" }}>
+      <svg viewBox="0 0 48 30" width={size} style={{ overflow: "visible" }}>
         {awake ? (
           <>
             {/* tail, wagging behind the haunches */}
