@@ -88,12 +88,135 @@ body {
   animation: drift 9s linear infinite;
 }
 
+/* The owl's periodic blink — a quick squash of the eyes, not a fade */
+@keyframes owlBlink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+.owlBlink {
+  animation: owlBlink 4s ease-in-out infinite;
+}
+
+/* A single "z" drifting up and fading — the sleeping dog's Zzz bubble */
+@keyframes zzz {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+.zzz {
+  animation: zzz 2.6s ease-in infinite;
+}
+
+/* Fireplace flames flickering */
+@keyframes flicker {
+  0%,
+  100% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: scaleY(1.15) scaleX(0.9);
+    opacity: 0.8;
+  }
+}
+.flame {
+  animation: flicker 0.9s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+/* A single spin — the cat's happy reaction after being fed */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+.spin {
+  animation: spin 0.6s ease-in-out 1;
+}
+
+/* A little hop — the owl's happy reaction after being fed */
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.hop {
+  animation: hop 0.3s ease-in-out 2;
+}
+
+/* Snow drifting down past the window, slow and slightly diagonal */
+@keyframes snowfall {
+  0% {
+    transform: translateY(-10px) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(420px) translateX(14px);
+    opacity: 0;
+  }
+}
+.snowfall {
+  animation: snowfall linear infinite;
+}
+
+/* Rain falling straight and fast */
+@keyframes rainfall {
+  0% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(420px);
+    opacity: 0;
+  }
+}
+.rainfall {
+  animation: rainfall linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .swing,
   .bob,
   .breathe,
   .tailSway,
-  .mote {
+  .mote,
+  .owlBlink,
+  .zzz,
+  .flame,
+  .spin,
+  .hop,
+  .snowfall,
+  .rainfall {
     animation: none;
   }
 }

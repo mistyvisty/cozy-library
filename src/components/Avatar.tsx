@@ -1,22 +1,29 @@
 import { FUR_PRESETS, type CatLook } from "../store/useLibrary";
 
+type Reaction = "spooked" | "eyeroll" | null;
+
 type Props = {
   look: CatLook;
   walking?: boolean;
   height?: number;
   pose?: "walking" | "curious" | "sleeping";
+  // Only shown during the curious pose — a genre-specific beat for a couple
+  // of shelves (Horror, Romance), not a full pose of its own.
+  reaction?: Reaction;
 };
 
 // The whole character is one SVG so it stays crisp at any size and every
 // part is recolourable via `look`. No sprite sheets, no image assets.
 // A horizontal (landscape) viewBox — unlike the old biped's portrait one —
 // since a cat's body reads left-to-right, not head-to-toe.
-export default function Avatar({ look, walking = false, height = 92, pose = "walking" }: Props) {
+export default function Avatar({ look, walking = false, height = 92, pose = "walking", reaction = null }: Props) {
   const { base, marking } = FUR_PRESETS[look.fur];
   const eye = look.eyeColor;
   const walk = pose === "walking";
   const sleeping = pose === "sleeping";
   const curious = pose === "curious";
+  const spooked = curious && reaction === "spooked";
+  const eyerolling = curious && reaction === "eyeroll";
   const animating = walking && walk;
   const swing = animating ? "swing" : "";
 
@@ -80,19 +87,57 @@ export default function Avatar({ look, walking = false, height = 92, pose = "wal
           <rect x="26" y="38" width="7" height="6" rx="3" fill={marking} />
           {/* head, tilted up and alert */}
           <circle cx="26" cy="16" r="12" fill={base} />
-          {/* ears, perked forward */}
-          <path d="M17 10 L15 1 L23 8 Z" fill={base} />
-          <path d="M35 10 L39 1 L41 8 Z" fill={base} />
-          <path d="M18.5 8.5 L18 4 L22 8 Z" fill={marking} opacity="0.7" />
-          <path d="M34 8.5 L37.5 4 L38.5 7.5 Z" fill={marking} opacity="0.7" />
-          {/* big round curious eyes */}
-          <circle cx="21" cy="17" r="3.2" fill={eye} />
-          <circle cx="31" cy="17" r="3.2" fill={eye} />
-          <circle cx="21" cy="17" r="1.2" fill="#20182B" />
-          <circle cx="31" cy="17" r="1.2" fill="#20182B" />
-          {/* nose + mouth */}
+          {/* ears — perked forward normally, flattened back when spooked */}
+          {spooked ? (
+            <>
+              <path d="M15 12 L9 6 L19 8 Z" fill={base} />
+              <path d="M37 12 L43 6 L33 8 Z" fill={base} />
+            </>
+          ) : (
+            <>
+              <path d="M17 10 L15 1 L23 8 Z" fill={base} />
+              <path d="M35 10 L39 1 L41 8 Z" fill={base} />
+              <path d="M18.5 8.5 L18 4 L22 8 Z" fill={marking} opacity="0.7" />
+              <path d="M34 8.5 L37.5 4 L38.5 7.5 Z" fill={marking} opacity="0.7" />
+            </>
+          )}
+          {/* eyes — wide and dilated when spooked, half-lidded for an eye
+              roll, big and round otherwise */}
+          {spooked ? (
+            <>
+              <circle cx="21" cy="17" r="4.2" fill="#FFF8EC" />
+              <circle cx="31" cy="17" r="4.2" fill="#FFF8EC" />
+              <circle cx="21" cy="17" r="2.4" fill="#20182B" />
+              <circle cx="31" cy="17" r="2.4" fill="#20182B" />
+            </>
+          ) : eyerolling ? (
+            <>
+              {/* pupils shifted up and to the same side — reads as an eye
+                  roll far more clearly at small sizes than a faint eyelid did */}
+              <circle cx="21" cy="17" r="3.2" fill={eye} />
+              <circle cx="31" cy="17" r="3.2" fill={eye} />
+              <circle cx="22.5" cy="15.3" r="1.2" fill="#20182B" />
+              <circle cx="32.5" cy="15.3" r="1.2" fill="#20182B" />
+              <path d="M18 12.5 Q21 11 24 12.5" fill="none" stroke="#2A2038" strokeWidth="1" strokeLinecap="round" />
+              <path d="M28 12.5 Q31 11 34 12.5" fill="none" stroke="#2A2038" strokeWidth="1" strokeLinecap="round" />
+            </>
+          ) : (
+            <>
+              <circle cx="21" cy="17" r="3.2" fill={eye} />
+              <circle cx="31" cy="17" r="3.2" fill={eye} />
+              <circle cx="21" cy="17" r="1.2" fill="#20182B" />
+              <circle cx="31" cy="17" r="1.2" fill="#20182B" />
+            </>
+          )}
+          {/* nose + mouth — a little "o" when spooked, flat when eyerolling */}
           <path d="M25 21 L27 21 L26 22.5 Z" fill="#D98A97" />
-          <path d="M26 22.5 Q24 24.5 22 23.5 M26 22.5 Q28 24.5 30 23.5" fill="none" stroke="#2A2038" strokeWidth="1" strokeLinecap="round" />
+          {spooked ? (
+            <circle cx="26" cy="24" r="1.6" fill="none" stroke="#2A2038" strokeWidth="1" />
+          ) : eyerolling ? (
+            <path d="M22 24 L30 24" fill="none" stroke="#2A2038" strokeWidth="1" strokeLinecap="round" />
+          ) : (
+            <path d="M26 22.5 Q24 24.5 22 23.5 M26 22.5 Q28 24.5 30 23.5" fill="none" stroke="#2A2038" strokeWidth="1" strokeLinecap="round" />
+          )}
           {/* whiskers */}
           <path d="M13 18 L4 16 M13 20 L4 20.5 M39 18 L48 16 M39 20 L48 20.5" stroke="#2A2038" strokeWidth="0.7" opacity="0.5" strokeLinecap="round" />
         </>

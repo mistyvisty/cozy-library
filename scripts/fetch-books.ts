@@ -66,6 +66,18 @@ const ORDINAL_EPOCH_RE = /^THE\s+(FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|
 // filtered out separately, by the ToC-cluster pass, not by this regex).
 const CHAPTER_ROMAN_RE = /^CHAPTER\s+([IVXLCDM]+)\.?\]?\s*.*$/i;
 const CHAPTER_ARABIC_RE = /^CHAPTER\s+(\d+)\b.*$/i;
+// Spelled-out ordinal chapter numbers (The Trial: "Chapter One", "Chapter
+// Two", ... with no title text on the same line — its actual chapter
+// descriptions sit on the next paragraph down, not appended here). Matched
+// against a closed word list rather than a loose "any word" pattern, so
+// this can't misfire on ordinary prose that happens to start a line with
+// "Chapter" followed by some other word.
+const CHAPTER_WORD_NUMS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17,
+  eighteen: 18, nineteen: 19, twenty: 20,
+};
+const CHAPTER_WORD_RE = new RegExp(`^Chapter\\s+(${Object.keys(CHAPTER_WORD_NUMS).join("|")})\\b.*$`, "i");
 // A bare roman numeral alone on a line, with or without a trailing period
 // (The Woman in White, The Time Machine, The War of the Worlds) — riskier
 // in isolation since it has no "CHAPTER"/"Part" word to anchor on, but safe
@@ -77,8 +89,26 @@ const BARE_ROMAN_RE = /^([IVXLCDM]+)\.?\s*$/;
 const LETTER_RE = /^Letter\s+(\d+)\.?\s*$/;
 // An unnumbered closing section (The Time Machine).
 const EPILOGUE_RE = /^Epilogue\.?\s*$/i;
+// An unnumbered opening section (The Turn of the Screw's fireside frame
+// narrative — real narrative, not front matter, but with no heading word to
+// anchor on, only the book's own title repeating flush-left right where the
+// frame narrative actually begins). The table of contents repeats the same
+// title too, indented, immediately above its list of roman numerals — that
+// copy still matches this regex after trimming, but sits close enough to
+// those numerals to get swept into the same ToC cluster and dropped by the
+// existing cluster pass below; only the real, later, isolated occurrence
+// survives to become a heading.
+const PROLOGUE_TITLE_RE = /^THE TURN OF THE SCREW\s*$/;
+
+// PART_OR_BOOK_RE's second group is sometimes a spelled-out ordinal ("PART
+// ONE") and sometimes a roman numeral ("PART II", Notes from the
+// Underground's two-part structure) — title-casing a roman numeral the same
+// way mangles it (title-casing "II" gives "Ii", not "II"), so numerals are
+// left fully uppercase instead.
+const ROMAN_NUMERAL_RE = /^[IVXLCDM]+$/i;
 
 function titleCase(word: string) {
+  if (ROMAN_NUMERAL_RE.test(word)) return word.toUpperCase();
   return word.charAt(0) + word.slice(1).toLowerCase();
 }
 
@@ -106,8 +136,19 @@ function findHeadings(lines: string[]): Heading[] {
       continue;
     }
 
+    if (PROLOGUE_TITLE_RE.test(line) && i > 0) {
+      headings.push({ line: i, kind: "chapter", text: "Prologue" });
+      continue;
+    }
+
     if (EPILOGUE_RE.test(line)) {
       headings.push({ line: i, kind: "chapter", text: "Epilogue" });
+      continue;
+    }
+
+    const wordMatch = line.match(CHAPTER_WORD_RE);
+    if (wordMatch) {
+      headings.push({ line: i, kind: "chapter", text: `Chapter ${CHAPTER_WORD_NUMS[wordMatch[1].toLowerCase()]}` });
       continue;
     }
 
@@ -183,9 +224,36 @@ function splitIntoChapters(text: string): { chapters: RawChapter[]; usedFallback
 
   const headingIndexes: { line: number; label: string }[] = [];
   let currentPart: string | null = null;
-  for (const h of headings) {
+  for (let idx = 0; idx < headings.length; idx++) {
+    const h = headings[idx];
+    // Part/epoch and Epilogue headings mutate currentPart for everything
+    // after them, so a false positive among them corrupts every later label
+    // — not just its own. The Time Machine exposed exactly this: its table
+    // of contents spells each entry "I Introduction" (title text, no
+    // "CHAPTER" keyword, so it doesn't match any heading regex) except its
+    // title-less last line, bare "Epilogue" — which does match, sitting
+    // right before the real chapter I with nothing but blank ToC-tail lines
+    // between them. A genuine part/epilogue marker always has real content
+    // before the next heading; a stray heading-shaped ToC leftover doesn't,
+    // so that's the check used to tell them apart.
+    if (h.kind === "part" || h.text === "Epilogue") {
+      const nextLine = idx + 1 < headings.length ? headings[idx + 1].line : lines.length;
+      const body = lines.slice(h.line + 1, nextLine).join("\n").trim();
+      if (!body) continue;
+    }
     if (h.kind === "part") {
       currentPart = h.text;
+      continue;
+    }
+    // An Epilogue stands after all parts, not inside the last one (Crime
+    // and Punishment's own numbered "I"/"II" epilogue chapters were getting
+    // mislabeled "Part VI — Chapter I", directly colliding with Part VI's
+    // real Chapter I/II and only papered over by the dedupe pass below) —
+    // so it clears the stale part label for its own line and becomes the
+    // part label for whatever numbered chapters follow it.
+    if (h.text === "Epilogue") {
+      headingIndexes.push({ line: h.line, label: "Epilogue" });
+      currentPart = "Epilogue";
       continue;
     }
     headingIndexes.push({ line: h.line, label: currentPart ? `${currentPart} — ${h.text}` : h.text });

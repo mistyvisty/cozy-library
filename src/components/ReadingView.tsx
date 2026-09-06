@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Book } from "../data/books";
 import type { BookText } from "../data/bookText";
-import type { ReadingPhase } from "../store/useLibrary";
+import { useLibrary, type PetId, type ReadingPhase } from "../store/useLibrary";
 
 type Props = {
   book: Book | undefined;
@@ -199,10 +199,33 @@ function Spread({
 
   const next = nextPosition(chapters, pos);
   const prev = prevPosition(chapters, pos);
+  const atEnd = next === null;
+
+  // Wakes the sleepy dog (and, later, grows the plant) — fires once, the
+  // moment a spread with no further pages is actually reached, not on the
+  // click that would have gone nowhere (Next is already disabled by then).
+  useEffect(() => {
+    if (atEnd) useLibrary.getState().notifyBookFinished();
+  }, [atEnd]);
+
+  // The feed prompt, likewise, fires once per forward crossing into a new
+  // chapter — not on Previous back into one already read, and not once per
+  // page within the same chapter.
+  const prevChapterIdx = useRef(pos.chapterIdx);
+  useEffect(() => {
+    if (pos.chapterIdx > prevChapterIdx.current) {
+      useLibrary.getState().notifyChapterFinished();
+    }
+    prevChapterIdx.current = pos.chapterIdx;
+  }, [pos.chapterIdx]);
 
   return (
-    <div className="flex max-h-[85dvh] flex-col overflow-hidden rounded-2xl bg-ink/10 shadow-2xl">
-      {/* the pages scroll internally if a spread is ever taller than the
+    <div className="relative flex h-[560px] max-h-[85dvh] flex-col overflow-hidden rounded-2xl bg-ink/10 shadow-2xl">
+      <FeedBanner />
+      {/* Fixed height (max-height still applies on short windows, whichever is
+          smaller wins) — pages used to size the card to their own content, so
+          the whole modal visibly grew and shrank on every Next/Previous click.
+          The pages scroll internally if a spread is ever taller than the
           available space (a very short window, or an unusually long page) —
           the controls bar below is a separate flex sibling, never inside
           this scroll area, so it can't be pushed off-screen. */}
@@ -302,11 +325,75 @@ function Spread({
   );
 }
 
+const PET_EMOJI: Record<PetId, string> = { cat: "🐱", owl: "🦉", dog: "🐶" };
+const PET_NAME: Record<PetId, string> = { cat: "The cat", owl: "The owl", dog: "The dog" };
+// Reuses each pet's existing animation vocabulary rather than inventing a
+// new keyframe per pet — tailSway already reads as a wag, and spin/hop are
+// the only two genuinely new ones needed.
+const HAPPY_TEXT: Record<PetId, string> = { cat: "purrs happily!", owl: "hoots happily!", dog: "wags happily!" };
+const HAPPY_CLASS: Record<PetId, string> = { cat: "spin", owl: "hop", dog: "tailSway" };
+
+// Shows when a chapter finishes ("hungryPet" wants feeding) and briefly
+// again with a happy animation right after feeding — sits inside the
+// reading card itself, not the dimmed room behind it, since that's barely
+// visible during reading and easy to miss a reaction in.
+function FeedBanner() {
+  const feedPrompt = useLibrary((s) => s.feedPrompt);
+  const hungryPet = useLibrary((s) => s.hungryPet);
+  const happyPet = useLibrary((s) => s.happyPet);
+  const feedPet = useLibrary((s) => s.feedPet);
+  const clearHappyPet = useLibrary((s) => s.clearHappyPet);
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!happyPet) return;
+    const id = setTimeout(clearHappyPet, 1600);
+    return () => clearTimeout(id);
+  }, [happyPet, clearHappyPet]);
+
+  const show = feedPrompt || !!happyPet;
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: reduceMotion ? 0 : 0.25 }}
+          className="absolute inset-x-4 top-3 z-10 flex items-center justify-between gap-3 rounded-xl bg-cream px-3 py-2 shadow-lg ring-1 ring-ink/10"
+        >
+          {happyPet ? (
+            <span className="font-body text-sm text-ink/80">
+              <span className={`inline-block ${reduceMotion ? "" : HAPPY_CLASS[happyPet]}`}>
+                {PET_EMOJI[happyPet]}
+              </span>{" "}
+              {PET_NAME[happyPet]} {HAPPY_TEXT[happyPet]}
+            </span>
+          ) : (
+            <>
+              <span className="font-body text-sm text-ink/80">
+                {PET_EMOJI[hungryPet]} {PET_NAME[hungryPet]} is hungry.
+              </span>
+              <button
+                onClick={feedPet}
+                className="shrink-0 rounded-full bg-ink px-3 py-1 font-body text-xs text-cream transition hover:bg-ink/90"
+              >
+                Feed
+              </button>
+            </>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // Shown while a book's text is still loading, and for any book that hasn't
 // been through `npm run fetch-books` yet — never a hard failure.
 function BlurbFallback({ book, loading, onClose }: { book: Book; loading: boolean; onClose: () => void }) {
   return (
-    <div className="grid max-h-[85dvh] grid-cols-1 gap-px overflow-y-auto rounded-2xl bg-ink/10 shadow-2xl sm:grid-cols-2">
+    <div className="grid h-[560px] max-h-[85dvh] grid-cols-1 gap-px overflow-y-auto rounded-2xl bg-ink/10 shadow-2xl sm:grid-cols-2">
       <div className="flex flex-col items-center justify-center gap-3 bg-cream/95 p-6 text-center">
         <div className="h-28 w-20 rounded-[4px] shadow-lg" style={{ background: book.spineColor }} />
         <h2 className="font-display text-xl leading-tight text-ink">{book.title}</h2>

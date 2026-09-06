@@ -6,12 +6,15 @@ type Props = {
   isOpen: boolean;
   isCurrent: boolean;
   onSelect: () => void;
+  onHover?: (hovering: boolean) => void;
 };
 
-export default function Bookcase({ section, isOpen, isCurrent, onSelect }: Props) {
+export default function Bookcase({ section, isOpen, isCurrent, onSelect, onHover }: Props) {
   return (
     <button
       onClick={onSelect}
+      onMouseEnter={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(false)}
       aria-label={`Walk to the ${section.name} shelf`}
       className="group absolute bottom-[25%] -translate-x-1/2 focus:outline-none"
       style={{ left: `${section.x}%` }}

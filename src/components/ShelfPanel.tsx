@@ -12,7 +12,9 @@ export default function ShelfPanel({ section, onTake, onClose }: Props) {
     // Framer Motion owns the whole `transform` property on a motion.div that
     // animates y/scale, which cancels a CSS translate-x-1/2 centering class —
     // center with flex on this plain wrapper instead.
-    <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center px-4">
+    // Extra bottom clearance below `sm` clears Netlify's free-tier badge,
+    // fixed to the real viewport's bottom-right corner (see App.tsx).
+    <div className="pointer-events-none absolute inset-x-0 bottom-20 z-30 flex justify-center px-4 sm:bottom-4">
       <AnimatePresence>
         {section && (
           <motion.div

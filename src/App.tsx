@@ -48,8 +48,11 @@ export default function App() {
         {/* what she's carrying */}
         {/* Framer Motion owns the whole `transform` property on a motion element
             that animates y, which cancels a CSS translate-x-1/2 centering class —
-            center with flex on this plain wrapper instead. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center px-4">
+            center with flex on this plain wrapper instead.
+            Extra bottom clearance below `sm`: on mobile this card is nearly
+            full-width with right-aligned buttons, right where Netlify's free-tier
+            badge sits (fixed to the real viewport's bottom-right corner). */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-20 z-30 flex justify-center px-4 sm:bottom-4">
           <AnimatePresence>
             {carried && readingPhase === "idle" && (
               <motion.aside
