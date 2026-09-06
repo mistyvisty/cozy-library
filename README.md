@@ -1,31 +1,47 @@
 # Cozy Library
 
-A digital library you walk around in. Pick a section, your avatar strolls over,
-opens the shelf, and takes a book off it.
+A digital library you walk around in. Pick a section, your cat
+strolls over, opens the shelf, and picks a book off it. Take it to
+her reading nook, and you can actually read the full text — real
+public-domain books, page by page, with a chapter list and a page
+indicator.
 
-v1 is the room, the avatar, and browsing. Reading mode comes next.
+Along the way she's got company: an owl by the window who watches
+what you're browsing, and a sleepy dog by the fireplace who wakes
+up wagging when you finish a whole book. Feed them between
+chapters, watch your plant grow the more you read, and see the
+room shift with the time of day.
+
+**Try it live:** https://stellular-donut-98ebbc.netlify.app
 
 ---
 
-## Run it
+## Run it locally
 
 **With Docker** (nothing to install but Docker):
 
-```bash
 docker compose up --build
-```
 
 **Without Docker** (needs Node 20+):
 
-```bash
 npm install
 npm run dev
-```
 
 Either way, open http://localhost:5173
 
-Other commands: `npm run build` (production bundle into `dist/`),
-`npm run preview` (serve that bundle).
+Other commands: npm run build (production bundle into dist/),
+npm run preview (serve that bundle).
+
+---
+
+## What's in the library
+
+Nine shelves: Classics, Romance, Thriller, Horror, Fantasy, Science
+Fiction, Kafka, and Dostoyevsky — all real, full-length public
+domain texts. A Hindi-language shelf is planned but deliberately
+held back for now, since no clean public-domain source has turned
+up yet (checked Gutenberg, Internet Archive, and Hindi Samay — see
+CLAUDE.md for details).
 
 ---
 
@@ -34,51 +50,28 @@ Other commands: `npm run build` (production bundle into `dist/`),
 | Piece | Why it's here |
 | --- | --- |
 | Vite + React + TypeScript | Instant hot reload; types catch typos in book data before the page breaks |
-| Tailwind | Styles live next to the markup, so the room is one file to read |
-| Framer Motion | Handles the walking, the panel springs, and enter/exit animations |
-| Zustand | One shared state object. Simpler than Redux, no boilerplate |
+| Tailwind | Styles live next to the markup |
+| Framer Motion | Handles walking, panel springs, and enter/exit animations |
+| Zustand (+ persist) | One shared state object; a small slice survives page reloads |
 
 ---
 
 ## Where things live
 
-```
 src/
-├── App.tsx                    header, panels, layout
-├── index.css                  Tailwind + the keyframes (walk, bob, dust)
-├── data/books.ts              sections, books, shelf positions  ← edit this first
-├── store/useLibrary.ts        avatar look, position, what's open
+├── App.tsx                 header, panels, layout
+├── data/books.ts            sections, books, shelf positions
+├── data/book-text/*.json    the actual downloaded book text
+├── store/useLibrary.ts      avatar, pets, reading state
 └── components/
-    ├── LibraryRoom.tsx        the scene: wall, floor, lamp, plant, avatar
-    ├── Bookcase.tsx           one shelf, drawn from its section's books
-    ├── ShelfPanel.tsx         the list that slides up when you arrive
-    ├── Customizer.tsx         skin / hair / outfit pickers
-    └── Avatar.tsx             the character, drawn entirely in SVG
-```
+    ├── LibraryRoom.tsx      the scene: walls, shelves, pets, mobile layout
+    ├── Bookcase.tsx         one shelf
+    ├── ShelfPanel.tsx       the book list per shelf
+    ├── ReadingView.tsx      the actual reading experience
+    ├── Avatar.tsx           the cat
+    ├── Owl.tsx / Dog.tsx / Fireplace.tsx / PawHouse.tsx
+    └── Customizer.tsx       fur/eye color pickers
 
-## How the walking works
-
-Each section in `data/books.ts` has an `x` — its position across the room as a
-percentage. Clicking a shelf calls `walkTo(sectionId)`, which sets the avatar's
-`x` to match. Framer Motion animates the gap, with the duration scaled to the
-distance, so a long walk takes longer. When the animation finishes, `arrive()`
-fires and the shelf panel opens.
-
-To add a section, add an object to `sections` and give it a free `x`. Everything
-else — the shelf, its label, its spines — draws itself from that.
-
-## New to React? Start here
-
-- `useLibrary()` in any component gives you the shared state. Change it with the
-  actions (`walkTo`, `takeBook`) — never by assigning to it.
-- Anything in `{ }` inside JSX is plain JavaScript.
-- `useState` is for state only one component cares about (like whether the
-  customizer is open). The store is for state the whole room cares about.
-
-## Roadmap
-
-1. **Reading mode** — avatar sits in an armchair, book opens, page-turn animation
-2. **Real text** — pull public-domain books from the Gutendex API
-3. **Progress** — bookmarks and a "currently reading" shelf (localStorage first, accounts later)
-4. **More room** — armchair, fireplace, a cat that follows you
-5. **Day/night** — window light shifts with the real clock
+scripts/fetch-books.ts       one-time script that downloads and
+processes the book text (doesn't run in production — the JSON
+it generates is committed to the repo)
